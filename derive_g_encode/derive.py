@@ -13,12 +13,13 @@ def write_pickle(data, name):
 
 # all_domain = src_domain + tgt_domain
 
-read_file = '499_pred_GDA_new.pkl'
+read_file = '19_pred.pkl' # '3_pred.pkl'
 
 info = read_pickle(read_file)
 z = info['z']
+# print(z.shape)
 g_encode = dict()
-for i in range(15):
+for i in range(30):
     g_encode[str(i)] = z[i]
 
 write_pickle(g_encode, "g_encode.pkl")

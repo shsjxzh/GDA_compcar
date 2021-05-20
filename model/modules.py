@@ -293,6 +293,59 @@ class AlexNet_GraphBN(AlexNet_BVLC):
 
 # 	return model
 
+class FeatureNet(nn.Module):
+    def __init__(self, opt):
+        super(FeatureNet, self).__init__()
+
+        nx, nh, nt, p = opt.num_input, opt.nh, opt.nv_embed, opt.p
+        self.p = p
+        self.nh = nh
+
+        self.fc1 = nn.Linear(nx, nh)
+        self.fc2 = nn.Linear(nh * 2, nh * 2)
+        # self.fc3 = nn.Linear(nh * 2, nh * 2)
+        # self.fc4 = nn.Linear(nh * 2, nh * 2)
+        self.fc_final = nn.Linear(nh * 2, nh)
+
+        # here I change the input to fit the change dimension
+        self.fc1_var = nn.Linear(nt, nh)
+        self.fc2_var = nn.Linear(nh, nh)
+
+        # self.bn=nn.BatchNorm1d(nh * 2)
+        # for m in self.modules():
+        #     if isinstance(m, nn.BatchNorm1d) or isinstance(m, nn.BatchNorm2d):
+        #         m.weight.data.fill_(1)
+        #         m.bias.data.zero_()
+
+    def forward(self, x, t):
+        re = x.dim() == 3
+        if re:
+            T, B, C = x.shape
+            x = x.reshape(T * B, -1)
+            t = t.reshape(T * B, -1)
+
+        x = F.relu(self.fc1(x))
+        t = F.relu(self.fc1_var(t))
+        t = F.relu(self.fc2_var(t))
+
+        # combine feature in the middle
+        x = torch.cat((x, t), dim=1)
+
+        # main
+        x = F.relu(self.fc2(x))
+        # x = F.relu(self.fc3(x))
+        # x = F.relu(self.fc4(x))
+
+        # bn
+        # x = nn.BatchNorm1d(self.nh * 2)(x)
+        # x = self.bn(x)
+
+        x = self.fc_final(x)
+
+        if re:
+            return x.reshape(T, B, -1)
+        else:
+            return x
         
 class GraphDNet(nn.Module):
     """

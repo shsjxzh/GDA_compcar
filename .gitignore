@@ -9,4 +9,6 @@ data/test result/
 dump/pred2.pkl
 dump/pred3.pkl
 dump/pred4.pkl
-dump2/
+dump/
+vis_data.py
+derive_g_encode/19_pred.pkl

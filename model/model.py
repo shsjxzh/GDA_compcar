@@ -92,7 +92,7 @@ class BaseModel(nn.Module):
         }
 
 
-        start = time.time()
+        # start = time.time()
 
         count = 0
         for data in dataloader.get_train_data():
@@ -115,16 +115,16 @@ class BaseModel(nn.Module):
             #     self.__vis_loss__(loss)
 
             # # correct form:
-            if self.use_visdom and count % self.opt.iter_interval == 0:
-                self.__vis_count_loss__(new_loss_values)
+            # if self.use_visdom and count % self.opt.iter_interval == 0:
+            #     self.__vis_count_loss__(new_loss_values)
             
-            # break
-            if count >= 10:
-                break
+            # # break
+            # if count >= 10:
+            #     break
             
         
-        end = time.time()
-        print("time: {}".format(end - start))
+        # end = time.time()
+        # print("time: {}".format(end - start))
 
         for key, _ in new_loss_values.items():
             loss_values[key] /= count
@@ -166,7 +166,6 @@ class BaseModel(nn.Module):
 
         for data in dataloader.get_test_data():
             self.__set_input__(data)
-
             # forward
             with torch.no_grad():
                 # z_seq = self.netG(self.t_seq)
@@ -176,6 +175,13 @@ class BaseModel(nn.Module):
                 # # 使用test forward的改进
                 # d_seq = self.netD(e_seq)
                 self.__test_forward__()
+
+            # z_seq = to_np(self.z_seq)
+            # print(z_seq)
+            if isinstance(z_seq,int):
+                z_seq = to_np(self.z_seq)
+
+            # print(z_seq.shape)
 
             acc_curve.append(self.g_seq.eq(self.y_seq).to(torch.float).mean(-1, keepdim=True))
 
@@ -208,8 +214,11 @@ class BaseModel(nn.Module):
         label_all = np.concatenate(l_label, axis=1)
 
         # print(np.asarray(l_z_seq).shape)
-        z_seq = to_np(self.z_seq)
+        # z_seq = to_np(self.z_seq)
+
+        # print(z_seq.shape)
         z_seq_all = z_seq[0:self.batch_size * self.test_dmn_num:self.batch_size,:]
+        # print(z_seq_all.shape)
         # print(z_seq_all.shape)
         # z_seq_all = np.concatenate(l_z_seq, axis=1)
 
@@ -269,7 +278,7 @@ class BaseModel(nn.Module):
     def __set_input__(self, data, train=True):
         """
         :param
-            x_seq: Number of domain x Batch size x channel x width x length
+            x_seq: Number of domain x Batch size x length
             y_seq: Number of domain x Batch size x Predict Data dim
             (testing: Number of domain x Batch size x test len x Predict Data dim)
             one_hot_seq: Number of domain x Batch size x Number of vertices (domains)
@@ -280,7 +289,10 @@ class BaseModel(nn.Module):
         # a tmp operation to add dim for data
         if train:
             # the domain seq is in d3!!
-            x_seq, y_seq, domain_seq = [d[0][None, :, :, :, :] for d in data], [d[1][None, :] for d in data], [d[2][None, :] for d in data] # , [d[3][None, :] for d in data]
+            # x_seq, y_seq, domain_seq = [d[0][None, :, :, :, :] for d in data], [d[1][None, :] for d in data], [d[2][None, :] for d in data] # , [d[3][None, :] for d in data]
+
+            x_seq, y_seq, domain_seq = [d[0][None, :, :] for d in data], [d[1][None, :] for d in data], [d[2][None, :] for d in data]
+
             self.x_seq = torch.cat(x_seq, 0).to(self.device) # .double()
             self.y_seq = torch.cat(y_seq, 0).to(self.device) # .unsqueeze(-1) # .double())
             # self.idx_seq = np.concatenate(idx_seq, 0)
@@ -290,7 +302,9 @@ class BaseModel(nn.Module):
             self.one_hot_seq = torch.cat(one_hot_seq, 0).reshape(self.num_domain, self.tmp_batch_size, -1).to(self.device)
 
         else:
-            x_seq, y_seq, domain_seq = [d[0][None, :, :, :, :] for d in data], [d[1][None, :] for d in data], [d[2][None, :] for d in data] # , [d[3][None, :] for d in data]
+            # x_seq, y_seq, domain_seq = [d[0][None, :, :, :, :] for d in data], [d[1][None, :] for d in data], [d[2][None, :] for d in data] # , [d[3][None, :] for d in data]
+            x_seq, y_seq, domain_seq = [d[0][None, :, :] for d in data], [d[1][None, :] for d in data], [d[2][None, :] for d in data]
+
             self.x_seq = torch.cat(x_seq, 0).to(self.device) # .double()
             self.y_seq = torch.cat(y_seq, 0).to(self.device) # .unsqueeze(-1) # .double()
             # self.idx_seq = np.concatenate(idx_seq, 0)
@@ -510,6 +524,11 @@ class BaseModel(nn.Module):
         return chain_node, node_num
 
     def __sub_graph__(self, my_sample_v):
+        if self.opt.sample_neighbour:
+            # print("sample neighbour")
+            return self.__neighbour__()
+            
+
         # play
         if np.random.randint(0,2) == 0:
             # for debugging, temporarily close the replacement
@@ -531,6 +550,29 @@ class BaseModel(nn.Module):
         # print(choosen_node)
         return choosen_node
         # return np.random.choice(self.num_domain, size=self.opt.sample_v, replace=False)
+    
+    def __neighbour__(self):
+        # find the neighbours?
+        # 单层neighbour
+        choosen_node = []
+        st = np.random.randint(0, self.num_domain)
+        choosen_node.append(st)
+        for i in range(self.num_domain):
+            if self.opt.A[st][i]:
+                choosen_node.append(i)
+        
+        # must have elements because the graph is connected
+        node_new = choosen_node[1:]
+        for node in node_new:
+            for i in range(self.num_domain):
+                if self.opt.A[node][i] and i not in choosen_node:
+                    choosen_node.append(i)
+        
+        # print(choosen_node)
+
+        return choosen_node
+
+
 
 
 class DANN(BaseModel):
@@ -539,15 +581,17 @@ class DANN(BaseModel):
     """
     def __init__(self, opt):
         super(DANN, self).__init__(opt)
-        self.netE = AlexNet_BVLC_Feature(opt).to(opt.device) # GRUSeqFeatureNet(opt).to(opt.device)
+        self.netE = FeatureNet(opt).to(opt.device)
+
+        # self.netE = AlexNet_BVLC_Feature(opt).to(opt.device) # GRUSeqFeatureNet(opt).to(opt.device)
         self.netF = PredNet(opt).to(opt.device) # GRUSeqPredNet(opt).to(opt.device)
         self.netG = GNet(opt).to(opt.device)
         self.netD = ClassDiscNet(opt).to(opt.device)
 
         self.__init_weight__()
 
-        if opt.use_pretrain_f:
-            self.netE.load_state_dict(torch.load(opt.feature_path), strict=False)
+        # if opt.use_pretrain_f:
+        #     self.netE.load_state_dict(torch.load(opt.feature_path), strict=False)
 
         EF_parameters = list(self.netE.parameters()) + list(self.netF.parameters())
         self.optimizer_EF= optim.Adam(EF_parameters, lr=opt.lr_e, betas=(opt.beta1, 0.999))
@@ -621,14 +665,15 @@ class CDANN(BaseModel):
     """
     def __init__(self, opt):
         super(CDANN, self).__init__(opt)
-        self.netE = AlexNet_BVLC_Feature(opt).to(opt.device) # GRUSeqFeatureNet(opt).to(opt.device)
+        self.netE = FeatureNet(opt).to(opt.device)
+        # self.netE = AlexNet_BVLC_Feature(opt).to(opt.device) # GRUSeqFeatureNet(opt).to(opt.device)
         self.netF = PredNet(opt).to(opt.device) # GRUSeqPredNet(opt).to(opt.device)
         self.netG = GNet(opt).to(opt.device)
         self.netD = CondClassDiscNet(opt).to(opt.device)
 
         self.__init_weight__()
-        if opt.use_pretrain_f:
-            self.netE.load_state_dict(torch.load(opt.feature_path), strict=False)
+        # if opt.use_pretrain_f:
+        #     self.netE.load_state_dict(torch.load(opt.feature_path), strict=False)
 
         EF_parameters = list(self.netE.parameters()) + list(self.netF.parameters())
         self.optimizer_EF= optim.Adam(EF_parameters, lr=opt.lr_e, betas=(opt.beta1, 0.999))
@@ -699,14 +744,15 @@ class CDANN(BaseModel):
 class ADDA(BaseModel):
     def __init__(self, opt):
         super(ADDA, self).__init__(opt)
-        self.netE = AlexNet_BVLC_Feature(opt).to(opt.device) # GRUSeqFeatureNet(opt).to(opt.device)
+        self.netE = FeatureNet(opt).to(opt.device)
+        # self.netE = AlexNet_BVLC_Feature(opt).to(opt.device) # GRUSeqFeatureNet(opt).to(opt.device)
         self.netF = PredNet(opt).to(opt.device) # GRUSeqPredNet(opt).to(opt.device)
         self.netG = GNet(opt).to(opt.device)
         self.netD = DiscNet(opt).to(opt.device)
         
         self.__init_weight__()
-        if opt.use_pretrain_f:
-            self.netE.load_state_dict(torch.load(opt.feature_path), strict=False)
+        # if opt.use_pretrain_f:
+        #     self.netE.load_state_dict(torch.load(opt.feature_path), strict=False)
 
         EF_parameters = list(self.netE.parameters()) + list(self.netF.parameters())
         self.optimizer_EF= optim.Adam(EF_parameters, lr=opt.lr_e, betas=(opt.beta1, 0.999))
@@ -779,14 +825,15 @@ class MDD(BaseModel):
     '''
     def __init__(self, opt):
         super(MDD, self).__init__(opt)
-        self.netE = AlexNet_BVLC_Feature(opt).to(opt.device) # GRUSeqFeatureNet(opt).to(opt.device)
+        self.netE = FeatureNet(opt).to(opt.device)
+        # self.netE = AlexNet_BVLC_Feature(opt).to(opt.device) # GRUSeqFeatureNet(opt).to(opt.device)
         self.netF = PredNet(opt).to(opt.device) # GRUSeqPredNet(opt).to(opt.device)
         self.netG = GNet(opt).to(opt.device)
         self.netD = PredNet(opt).to(opt.device)
 
         self.__init_weight__()
-        if opt.use_pretrain_f:
-            self.netE.load_state_dict(torch.load(opt.feature_path), strict=False)
+        # if opt.use_pretrain_f:
+        #     self.netE.load_state_dict(torch.load(opt.feature_path), strict=False)
 
         EF_parameters = list(self.netE.parameters()) + list(self.netF.parameters())
         self.optimizer_EF= optim.Adam(EF_parameters, lr=opt.lr_e, betas=(opt.beta1, 0.999))
@@ -894,8 +941,9 @@ class GDA(BaseModel):
         # all the necessary net
         # self.netE = GraphSeqFeatureNet(opt).to(opt.device)
         # self.netF = GraphSeqPredNet(opt).to(opt.device)
-
-        self.netE = AlexNet_BVLC_Feature(opt).to(opt.device) # GRUSeqFeatureNet(opt).to(opt.device)
+        
+        self.netE = FeatureNet(opt).to(opt.device)
+        # self.netE = AlexNet_BVLC_Feature(opt).to(opt.device) # GRUSeqFeatureNet(opt).to(opt.device)
         self.netF = PredNet(opt).to(opt.device) # GRUSeqPredNet(opt).to(opt.device)
         # self.netF_value = GRUSeqPredValueNet(opt).to(opt.device)
         # self.netE = FeatureNet(opt).to(opt.device)
@@ -908,8 +956,8 @@ class GDA(BaseModel):
 
         # after initialization, load old weights!!
         # TODO: warm start for feature for all the code
-        if opt.use_pretrain_f:
-            self.netE.load_state_dict(torch.load(opt.feature_path), strict=False)
+        # if opt.use_pretrain_f:
+        #     self.netE.load_state_dict(torch.load(opt.feature_path), strict=False)
 
         EF_parameters = list(self.netE.parameters()) + list(self.netF.parameters()) # + list(self.netF_value.parameters())
         self.optimizer_EF= optim.Adam(EF_parameters, lr=opt.lr_e, betas=(opt.beta1, 0.999))
@@ -1016,7 +1064,7 @@ class GDA(BaseModel):
 
         # random pick subchain and optimize the D
         # balance coefficient is calculate by pos/neg ratio
-
+        # print("I am here")
         sub_graph = self.__sub_graph__(my_sample_v=self.opt.sample_v)
 
         errorD_connected = torch.zeros((1,)).to(self.device)  # .double()
@@ -1030,10 +1078,16 @@ class GDA(BaseModel):
         # print(d.shape)
         
         for i in range(self.opt.sample_v):
+            # be careful!!
+            if self.opt.sample_neighbour and i >= len(sub_graph):
+                break
             v_i = sub_graph[i]
             # for j in range(i, self.opt.sample_v):
             # !! debug, no self loop version!!
             for j in range(i + 1, self.opt.sample_v):
+                if self.opt.sample_neighbour and j >= len(sub_graph):
+                    break
+                
                 v_j = sub_graph[j]
                 
                 # TODO!!!! for seq len data only!!
