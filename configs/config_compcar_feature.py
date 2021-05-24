@@ -20,8 +20,8 @@ opt.data_path = opt.data_src + "feature.pkl"
 # VIEWS=['1','2','3','4','5']
 # opt.domain_name = ["{}-{}".format(i,j) for i in DATES for j in VIEWS]
 
-# opt.model = "GDA"
-opt.model = "DANN"
+opt.model = "GDA"
+# opt.model = "DANN"
 # opt.model = "CDANN"
 # opt.model = 'ADDA'
 # opt.model = 'MDD'
@@ -53,8 +53,8 @@ if opt.use_g_encode:
 # dataset and data loading
 opt.shuffle=True
 
-opt.src_domain = [0] # list(range(0,12))
-opt.tgt_domain = list(range(1, 30))# list(range(12,30))
+opt.src_domain = [0,1,5] # list(range(0,12))
+opt.tgt_domain = [2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]# list(range(12,30))
 
 opt.src_dmn_num = len(opt.src_domain)
 opt.tgt_dmn_num = len(opt.tgt_domain)
