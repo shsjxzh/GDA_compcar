@@ -905,7 +905,7 @@ class MDD(BaseModel):
         # self.loss_D = (loss_ADV_src * self.lambda_src + loss_ADV_tgt * self.lambda_tgt) / (self.lambda_src + self.lambda_tgt)
         
         self.optimizer_D.step()
-        return loss_ADV_src.item(), loss_ADV_tgt.item()
+        return self.loss_ADV_src.item(), self.loss_ADV_tgt.item()
 
     def __optimize_EF__(self):
         self.netD.eval(), self.netG.eval()
