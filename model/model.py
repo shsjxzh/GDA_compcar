@@ -862,6 +862,7 @@ class MDD(BaseModel):
         # self.e_seq = self.netE(self.x_seq, self.z_seq)  # encoder of the data
         self.e_seq = self.netE(self.x_seq, self.z_seq)  # encoder of the data
         self.f_seq = self.netF(self.e_seq)
+        self.g_seq = torch.argmax(self.f_seq.detach(), dim=2)  # class of the prediction
 
     def __optimize__(self):
         loss_value = dict()
