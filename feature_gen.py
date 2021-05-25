@@ -166,4 +166,4 @@ print(my_data['data'].shape)
 my_data['label'] = np.concatenate(all_label, axis=0)
 my_data['domain'] = np.concatenate(all_domain, axis=0)
 
-write_pickle(my_data, "feature.pkl")
+write_pickle(my_data, "data/GDA_data/feature.pkl")
