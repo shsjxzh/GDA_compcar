@@ -633,7 +633,7 @@ class CondClassDiscNet(nn.Module):
     """
 
     def __init__(self, opt):
-        super(ClassDiscNet, self).__init__()
+        super(CondClassDiscNet, self).__init__()
         nh = opt.nh
         nc = opt.nc
         nin = nh

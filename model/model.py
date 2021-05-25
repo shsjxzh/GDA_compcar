@@ -813,6 +813,7 @@ class ADDA(BaseModel):
         self.loss_E_pred = F.nll_loss(flat(self.f_seq_source), flat(self.y_seq_source))
 
         self.loss_E = self.loss_E_gan * self.opt.lambda_gan + self.loss_E_pred
+        self.loss_E.backward()
 
         self.optimizer_EF.step()
 
