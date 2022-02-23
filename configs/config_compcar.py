@@ -12,7 +12,7 @@ def read_pickle(name):
 opt = EasyDict()
 
 # data source
-opt.data_src = "data/GDA_data/"
+opt.data_src = "data/data/"
 
 DATES=['2009','2010','2011','2012','2013','2014']
 VIEWS=['1','2','3','4','5']

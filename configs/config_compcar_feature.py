@@ -12,7 +12,7 @@ def read_pickle(name):
 opt = EasyDict()
 
 # data source
-opt.data_src = "data/GDA_data/"
+opt.data_src = "data/data/"
 opt.data_path = opt.data_src + "feature.pkl"
 # opt.data_src = "feature.pkl"
 
@@ -109,8 +109,9 @@ opt.device = "cuda" # "cuda"
 
 # opt.A = read_pickle(opt.data_src + "new_A.pkl")
 # opt.A = read_pickle(opt.data_src + "A_1e-6.pkl")
-opt.A = read_pickle(opt.data_src + "A.pkl")
+opt.A = read_pickle(opt.data_src + "A_1e-5.pkl")
+# opt.A = read_pickle(opt.data_src + "A.pkl")
 # for A.pkl only!!!!
-opt.A[opt.A >= 1e-5] = 1
-opt.A[opt.A < 1e-5] = 0
-print(opt.A)
+# opt.A[opt.A >= 1e-5] = 1
+# opt.A[opt.A < 1e-5] = 0
+# print(opt.A)

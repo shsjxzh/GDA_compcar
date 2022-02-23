@@ -107,7 +107,7 @@ class featureDataset(Dataset):
 
         if self.transform:
             img = self.transform(img)
-        return img, target - 1, self.domain_idx
+        return img, target, self.domain_idx
 
 model = get_graph_net(url="pretrained/alexnet_caffe.pth.tar")
 model.to("cuda")
@@ -118,12 +118,24 @@ model.to("cuda")
 DATES=['2009','2010','2011','2012','2013','2014']
 VIEWS=['1','2','3','4','5']
 domain_name = ["{}-{}".format(i,j) for i in DATES for j in VIEWS]
-data_src = "data/GDA_data/"
+data_src = "data/car_images.txt"
+
+# deal with datalist
+lines = pd.read_csv(data_src, delimiter=' ', header=None)
+lines[2] -= 1
 
 data_lists = []
 for i in range(30):
-    file_name = data_src + domain_name[i]
-    data_list = pd.read_csv(file_name, header=None)
+    # file_name = data_src + domain_name[i]
+    # data_list = pd.read_csv(file_name, header=None)
+    file_name = domain_name[i]
+    data_list = lines.loc[lines[1] == file_name]
+    # print(train_split.shape)
+    data_list = data_list[[0, 2]]
+    data_list = data_list.to_numpy()
+    # print(data_list)
+    # print(data_list.size)
+    # break
     data_lists.append(data_list)
 
 
@@ -166,4 +178,4 @@ print(my_data['data'].shape)
 my_data['label'] = np.concatenate(all_label, axis=0)
 my_data['domain'] = np.concatenate(all_domain, axis=0)
 
-write_pickle(my_data, "data/GDA_data/feature.pkl")
+write_pickle(my_data, "data/data/feature.pkl")
