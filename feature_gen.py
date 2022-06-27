@@ -11,6 +11,7 @@ from collections import OrderedDict
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torchvision.datasets.folder import  has_file_allowed_extension, is_image_file, IMG_EXTENSIONS, pil_loader, accimage_loader,default_loader
+from tqdm import tqdm
 
 def write_pickle(data, name):
     with open(name,'wb') as f:
@@ -99,7 +100,8 @@ class featureDataset(Dataset):
     def __getitem__(self, idx):
         if idx >= self.real_len:
             idx = idx % self.real_len
-        path, target = self.data_list[0][idx], self.data_list[2][idx]
+        path = self.data_list[idx][0]
+        target = self.data_list[idx][1]
         img = default_loader(path) # io.imread(path)
         # img = cv2.imread(path)
         # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -133,9 +135,6 @@ for i in range(30):
     # print(train_split.shape)
     data_list = data_list[[0, 2]]
     data_list = data_list.to_numpy()
-    # print(data_list)
-    # print(data_list.size)
-    # break
     data_lists.append(data_list)
 
 
@@ -162,7 +161,7 @@ for i in range(30):
                     num_workers=2,
                     # pin_memory=True,
                 ) 
-    for data in dataloader:
+    for data in tqdm(dataloader):
         with torch.no_grad():
             x, y, domain_idx = data 
             encode = model(x.to("cuda"))
